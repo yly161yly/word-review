@@ -146,6 +146,7 @@
   .modal.on{display:flex}
   .sheet{background:#fff;border-radius:18px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px;box-shadow:0 18px 60px rgba(16,24,40,.28)}
   .sheet .sw{font-size:27px;font-weight:650;letter-spacing:-.3px}
+  .sheet-title{font-size:18px;font-weight:650;color:#4b5058}
   .sheet .mean{font-size:17px;margin-top:14px;white-space:pre-wrap;line-height:1.6}
   .sheet .ex{margin-top:9px;color:#5a5f68;font-size:14.5px;font-style:italic}
   .hr{height:1px;background:var(--line);margin:18px 0}
@@ -405,33 +406,48 @@ achieve     v. 实现，达成</code></pre>
 <!-- 单词面板 -->
 <div class="modal" id="modal">
   <div class="sheet">
-    <div class="row" style="justify-content:space-between;align-items:flex-start">
-      <div>
-        <div class="sw" id="mWord"></div>
-        <div class="phon" id="mPhon"></div>
-      </div>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="sheet-title">单词详情</div>
       <div class="row">
         <button class="btn" id="mSpeak" title="朗读">🔊</button>
         <button class="btn" id="mClose">关闭</button>
       </div>
     </div>
-    <div class="mean" id="mMean"></div>
-    <div class="ex" id="mEx"></div>
-    <div class="row" style="margin-top:12px" id="mTags"></div>
 
-    <div class="hr"></div>
-    <div id="mNoteArea">
+    <!-- 已经在单词表里的词：整页编辑 -->
+    <div id="mEditArea">
+      <label class="f">单词</label>
+      <input type="text" id="mWord" autocomplete="off" spellcheck="false">
+      <label class="f">音标</label>
+      <input type="text" id="mPhon" autocomplete="off" placeholder="例如：/əˈtʃiːv/">
+      <label class="f">释义</label>
+      <textarea id="mMean" rows="3" placeholder="例如：vt. 完成，达到"></textarea>
+      <label class="f">例句</label>
+      <textarea id="mEx" rows="2" placeholder="例如：She worked hard to achieve her goal."></textarea>
+      <div class="row" id="mTags" style="margin-top:14px"></div>
+      <div class="muted" id="mBankHint" style="margin-top:10px"></div>
+
+      <div class="hr"></div>
       <label class="f" style="margin-top:0">我的笔记</label>
       <textarea class="note-edit" id="mNote" placeholder="例如：和 confident 一起记；反义词是 reluctant；写作里可以替换 important。"></textarea>
       <div class="row" style="margin-top:10px">
-        <button class="btn primary" id="mSave">保存笔记</button>
-        <button class="btn" id="mPreviewBtn">看看关联效果</button>
+        <button class="btn primary" id="mSave">保存全部</button>
+        <button class="btn danger" id="mDelete">删除这个单词</button>
         <span class="muted" id="mSaved"></span>
       </div>
     </div>
+
+    <!-- 还没加入单词表的词：只给看和加入 -->
     <div id="mNotMine" style="display:none">
-      <p class="sub" style="margin:0 0 10px">这个词还没在你要复习的单词表里。</p>
-      <button class="btn primary" id="mAdd">加入我的单词表</button>
+      <div class="sw" id="mWordView"></div>
+      <div class="phon" id="mPhonView"></div>
+      <div class="mean" id="mMeanView"></div>
+      <div class="row" id="mTagsView" style="margin-top:12px"></div>
+      <p class="sub" style="margin:14px 0 10px">这个词还没在你要复习的单词表里。</p>
+      <div class="row">
+        <button class="btn primary" id="mAdd">加入我的单词表</button>
+        <button class="btn" id="mSpeak2" title="朗读">🔊 朗读</button>
+      </div>
     </div>
 
     <div class="hr"></div>
@@ -979,9 +995,8 @@ window.WORD_BANK = {"a":{"m":"第一个字母 A; 一个; 第一的","p":"/ˈeɪ/
           '<div class="kv2"></div>' +
           '<div class="note-view" style="margin-bottom:12px"></div>' +
           '<div class="row">' +
-            '<button class="btn primary" data-act="note">写笔记 / 看关联</button>' +
+            '<button class="btn primary" data-act="note">编辑 / 笔记</button>' +
             '<button class="btn" data-act="speak">🔊 朗读</button>' +
-            '<button class="btn" data-act="edit">编辑</button>' +
             '<button class="btn" data-act="reset">重置进度</button>' +
             '<button class="btn danger" data-act="del">删除</button>' +
           '</div>' +
@@ -1004,17 +1019,7 @@ window.WORD_BANK = {"a":{"m":"第一个字母 A; 一个; 第一的","p":"/ˈeɪ/
         var b = e.target.closest("button[data-act]"); if(!b) return;
         var act = b.getAttribute("data-act");
         if(act === "speak") speak(w.word);
-        if(act === "note") openPanel(w.word);
-        if(act === "edit"){
-          var nw = prompt("单词：", w.word); if(nw === null) return;
-          var np = prompt("音标：", w.phonetic || ""); if(np === null) return;
-          var nm = prompt("释义：", w.meaning || ""); if(nm === null) return;
-          var ne = prompt("例句：", w.example || ""); if(ne === null) return;
-          var nn = prompt("备注：", w.note || ""); if(nn === null) return;
-          w.word = nw.trim() || w.word;
-          w.phonetic = np.trim(); w.meaning = nm.trim(); w.example = ne.trim(); w.note = nn.trim();
-          save(); renderAll(); toast("已更新");
-        }
+        if(act === "note" || act === "edit") openPanel(w.word);
         if(act === "reset"){
           if(!confirm("把「" + w.word + "」的复习进度重置为第 1 档（今天首记）？")) return;
           w.stage = 0; w.due = T; w.history = []; w.reviews = 0; w.lapses = 0;
@@ -1276,34 +1281,47 @@ window.WORD_BANK = {"a":{"m":"第一个字母 A; 一个; 第一的","p":"/ˈeɪ/
     var w = PANEL.id ? find(PANEL.id) : null;
     var bank = bankLookup(PANEL.word);
     var entry = bank ? bank.entry : null;
-    var display = w ? w.word : PANEL.word;
 
-    $("mWord").textContent = display;
-    $("mPhon").textContent = (w && w.phonetic) || (entry && entry.p) || "";
-    $("mMean").textContent = (w && w.meaning) || (entry && entry.m) || "词库里没有这个词，你可以自己填。";
-    $("mEx").textContent = (w && w.example) ? w.example : "";
-
+    // 标签（两种状态都要显示）
     var tags = [];
     if(entry){
-      tags.push('<span class="chip" style="cursor:default">' + bankTierName(entry) + '</span>');
+      tags.push('<span class="chip" style="cursor:default">' + bankTierName(entry) + "</span>");
       if(entry.i) tags.push('<span class="chip" style="cursor:default">雅思常考</span>');
-      if(entry.c) tags.push('<span class="chip" style="cursor:default">柯林斯 ' + entry.c + ' 星</span>');
+      if(entry.c) tags.push('<span class="chip" style="cursor:default">柯林斯 ' + entry.c + " 星</span>");
       if(entry.o) tags.push('<span class="chip" style="cursor:default">牛津核心词</span>');
     }else{
       tags.push('<span class="chip ghost" style="cursor:default">不在词库内，属于高阶词</span>');
     }
-    if(w && w.base) tags.push('<span class="chip" style="cursor:default">原形：' + escapeHtml(w.base) + '</span>');
-    if(w && w.stage != null) tags.push('<span class="chip" style="cursor:default">' + escapeHtml(stageLabel(w)) + '</span>');
-    $("mTags").innerHTML = tags.join("");
+    if(w && w.base) tags.push('<span class="chip" style="cursor:default">原形：' + escapeHtml(w.base) + "</span>");
+    if(w && w.stage != null) tags.push('<span class="chip" style="cursor:default">' + escapeHtml(stageLabel(w)) + "</span>");
+    if(w) tags.push('<span class="chip" style="cursor:default">' + escapeHtml(dueText(w, T)) + "</span>");
 
-    $("mNoteArea").style.display = w ? "block" : "none";
+    $("mEditArea").style.display = w ? "block" : "none";
     $("mNotMine").style.display = w ? "none" : "block";
     $("mSaved").textContent = "";
+
     if(w){
+      $("mTags").innerHTML = tags.join("");
+      $("mWord").value = w.word;
+      $("mPhon").value = w.phonetic || "";
+      $("mMean").value = w.meaning || "";
+      $("mEx").value = w.example || "";
       $("mNote").value = w.note || "";
       $("mNoteView").innerHTML = linkifyNote(w.note);
+      // 词库里有这个词的话，给一行参考，方便一键恢复成标准音标释义
+      if(entry){
+        $("mBankHint").innerHTML = "词库参考：" + escapeHtml(entry.p || "") + "　" +
+          escapeHtml(entry.m || "").split("\n").join("　") +
+          '　<button class="chip" id="mUseBank">用词库的值</button>';
+      }else{
+        $("mBankHint").innerHTML = "词库里没有这个词，音标和释义可以自己写。";
+      }
       drawRelated(w);
     }else{
+      $("mWordView").textContent = PANEL.word;
+      $("mPhonView").textContent = (entry && entry.p) || "";
+      $("mMeanView").textContent = (entry && entry.m) || "词库里没有这个词。";
+      $("mTagsView").innerHTML = tags.join("");
       $("mNoteView").innerHTML = '<span class="muted">先把它加入单词表，就可以写笔记了。</span>';
       $("mOut").innerHTML = '<span class="muted">—</span>';
       $("mBack").innerHTML = '<span class="muted">—</span>';
@@ -1330,16 +1348,37 @@ window.WORD_BANK = {"a":{"m":"第一个字母 A; 一个; 第一的","p":"/ˈeɪ/
       : '<span class="muted">还没有别的笔记提到这个词</span>';
   }
 
-  function savePanelNote(){
+  // 一页保存：单词、音标、释义、例句、笔记一次全存下来
+  function savePanel(){
     if(!PANEL.id) return;
     var w = find(PANEL.id); if(!w) return;
+
+    var newWord = $("mWord").value.trim();
+    if(newWord && newWord !== w.word){
+      w.word = newWord;
+      w.base = "";                       // 词形变了，之前的「原形」提示作废
+    }
+    w.phonetic = $("mPhon").value.trim();
+    w.meaning = $("mMean").value.trim();
+    w.example = $("mEx").value.trim();
     w.note = $("mNote").value;
     w.noteAt = Date.now();
-    save(); renderList(); renderNotes();
-    $("mNoteView").innerHTML = linkifyNote(w.note);
-    drawRelated(w);
+    if(!w.phonetic || !w.meaning) fillFromBank(w);
+
+    save(); renderAll();
+    drawPanel();
     $("mSaved").textContent = "已保存";
     setTimeout(function(){ $("mSaved").textContent = ""; }, 1800);
+  }
+
+  function deleteFromPanel(){
+    if(!PANEL.id) return;
+    var w = find(PANEL.id); if(!w) return;
+    if(!confirm("删除「" + w.word + "」？复习记录会一起删掉。")) return;
+    var id = w.id;
+    db.words = db.words.filter(function(x){ return x.id !== id; });
+    save(); closePanel(); renderAll();
+    toast("已删除「" + w.word + "」");
   }
 
   function renderNotes(){
@@ -1417,7 +1456,7 @@ window.WORD_BANK = {"a":{"m":"第一个字母 A; 一个; 第一的","p":"/ˈeɪ/
             '<div class="meaning" id="aMean"></div>' +
             (w.example ? '<div class="example" id="aEx"></div>' : '') +
             (w.note ? '<div class="note" id="aNote"></div>' : '') +
-            '<div style="margin-top:14px"><button class="btn" id="btnNote">✎ 写笔记 / 看关联</button></div>' +
+            '<div style="margin-top:14px"><button class="btn" id="btnNote">✎ 编辑 / 笔记</button></div>' +
           '</div>'
         : '<div class="hint" style="margin-top:14px">先在心里说出意思，再点下面按钮</div>');
     body.querySelector("#wText").textContent = w.word;
@@ -1781,11 +1820,21 @@ window.WORD_BANK = {"a":{"m":"第一个字母 A; 一个; 第一的","p":"/ˈeɪ/
 
   /* 单词面板 */
   $("mClose").addEventListener("click", closePanel);
-  $("mSpeak").addEventListener("click", function(){ speak($("mWord").textContent); });
-  $("mSave").addEventListener("click", savePanelNote);
+  $("mSpeak").addEventListener("click", function(){ speak($("mWord").value || PANEL.word); });
+  $("mSpeak2").addEventListener("click", function(){ speak(PANEL.word); });
+  $("mSave").addEventListener("click", savePanel);
+  $("mDelete").addEventListener("click", deleteFromPanel);
   $("mNote").addEventListener("input", function(){ $("mNoteView").innerHTML = linkifyNote(this.value); });
   $("modal").addEventListener("click", function(e){
     if(e.target === this){ closePanel(); return; }
+    if(e.target.id === "mUseBank"){          // 一键恢复成词库里的标准音标和释义
+      var hit = bankLookup(PANEL.word);
+      if(hit){
+        $("mPhon").value = hit.entry.p || "";
+        $("mMean").value = hit.entry.m || "";
+      }
+      return;
+    }
     var a = e.target.closest(".wlink, .chip[data-w]");
     if(!a) return;
     var target = a.getAttribute("data-w");
@@ -1913,6 +1962,7 @@ window.WORD_BANK = {"a":{"m":"第一个字母 A; 一个; 第一的","p":"/ˈeɪ/
     speak: speak, SET: SET, parseBulk: parseBulk, addBulk: addBulk,
     mergeItems: mergeItems, importWordList: importWordList, importFile: importFile,
     importBackup: importBackup, exportJson: exportJson,
+    savePanel: savePanel, deleteFromPanel: deleteFromPanel,
     bankLookup: bankLookup, fillFromBank: fillFromBank, renderNotes: renderNotes,
     openPanel: openPanel, drawPanel: drawPanel, linkifyNote: linkifyNote,
     planOffsets: planOffsets, daysToExam: daysToExam,
